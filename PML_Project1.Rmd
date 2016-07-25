@@ -131,9 +131,7 @@ for (i in 1:5){
 }
 barplot(x, col = c("red", "green", "purple", "navy", "orange")) 
   barplot(x, col = c("red", "green", "purple", "navy", "orange"),
-  main = "Incorrect Predictions", ylab = "Count", xlab = "Classe") 
-      barplot(x, col = c("red", "green", "purple", "navy", "orange"),
-      main = "Incorrect Predictions", ylab = "Count", xlab = "Classe",
+  main = "Incorrect Predictions", ylab = "Count", xlab = "Classe")
       legend("topleft", pch = 15, col= c("red", "green", "purple", "navy", "orange"), 
-      legend = c("A", "B", "C", "D", "E")))
+      legend = c("A", "B", "C", "D", "E"))
 ```
