@@ -1,0 +1,139 @@
+---
+title: "Groupware_classe_prediction"
+author: "EGB"
+date: "July 23, 2016"
+output: html_document
+---
+
+#Introduction
+
+This is a prediction model of the "classe" variable from the Weight Lifting Exercises Dataset gathered from:
+http://groupware.les.inf.puc-rio.br/har.  The "classe" of an exercise will be predicted from various classifiers in the training dataset.  These classifiers will be those variables that contain the words "belt". "arm", "forearm" or "dumbell."
+
+#Import data
+
+```{r}
+training <- read.csv("C:/Users/Erika/Desktop/Data Science/Practical Machine Learning/pml-training.csv")
+testing <- read.csv("C:/Users/Erika/Desktop/Data Science/Practical Machine Learning/pml-testing.csv")
+```
+
+#Import libraries
+
+```{r}
+library(caret); library(ggplot2)
+```
+
+#Preprocessing
+I split the datset into data for only the readings from the arm, belt, forearm and dumbell accelerometers respectively.
+
+```{r}
+#separating my data to combine later
+
+arm_str <- grep("_arm", colnames(training), value = TRUE)
+arm_data <- training[, arm_str]
+#arm_data <- cbind(training[, arm_str], training$classe)
+
+belt_str <- grep("belt", colnames(training), value = TRUE)
+belt_data <- training[, belt_str]
+#belt_data <- cbind(training[, belt_str], training$classe)
+
+farm_str <- grep("fore", colnames(training), value = TRUE)
+farm_data <- training[, farm_str]
+#farm_data <- cbind(training[, farm_str], training$classe)
+
+bell_str <- grep("dumbbell", colnames(training), value = TRUE)
+bell_data <- training[, bell_str]
+#bell_data <- cbind(training[, bell_str], training$classe)
+
+classe_str <- grep("classe", colnames(training), value = TRUE)
+classe_data <- training[, classe_str]
+
+#combine into master data
+master_data <- cbind(arm_data, belt_data, farm_data, bell_data, classe_data)
+names(master_data)[153]<-"classe"
+
+#Remove columns with more than 95% of NA or "" values
+threshold <- dim(master_data)[1] * 0.95
+gCols <- !apply(master_data, 2, function(x) sum(is.na(x)) > threshold  || sum(x=="") > threshold)
+
+master_data <- master_data[, gCols]
+
+bCols <- nearZeroVar(master_data, saveMetrics = TRUE)
+
+master_data <- master_data[, bCols$nzv==FALSE]
+
+```
+
+#Generating Models
+Models will be generated using random forests and boosting since they have a high accuracy rate.  They will then stacked for a complete prediction algorithm.  My cross validation percentage for training/ testing was 75/25 respectively.
+
+```{r}
+#split training into another train and test set
+set.seed(14641)
+inTrain = createDataPartition(master_data$classe, p = 3/4)[[1]]
+train2 = master_data[inTrain, ]
+test2 = master_data[-inTrain, ]
+
+#Build two different models
+mod1 <- train(classe ~.,method="rf",data=train2)
+mod2 <- train(classe ~.,method="gbm",data=train2)
+```
+
+#Calculating Predictions
+
+```{r}
+#Predict on the testing set
+pred1 <- predict(mod1,test2) 
+pred2 <- predict(mod2,test2)
+qplot(pred2,pred1,colour=classe,data=test2)
+
+#Fit a model that combines the predictors
+predDF <- data.frame(pred2,pred1,classe=test2$classe)
+combModFit <- train(classe ~.,method="rf",data=predDF)
+combPred <- predict(combModFit,predDF)
+```
+
+#Checking out-of-sample errors via confusion matrices
+
+```{r}
+#Confusion matrices
+c1 <- confusionMatrix(pred1, test2$classe)
+c2 <- confusionMatrix(pred2, test2$classe)
+c3 <- confusionMatrix(combPred, test2$classe)
+
+c1$table
+c2$table
+c3$table
+
+#Accuracy
+print(cbind(c("rf", "gbm", "combrf"),c(c1$overall[1], c2$overall[1], c3$overall[1])))
+```
+
+This will make the out-of-sample errors amount to .0051%.
+
+Below is a plot showing how well the model did in predicting:
+
+```{r, echo=FALSE}
+#Comparison of Results
+plot(c3$table, col = "maroon", main = "Classe Predictions")
+```
+
+To get a better sense of the counts of erroneous predictions:
+```{r, echo=FALSE}
+#Getting incorrect values
+x <- c(0,0,0,0,0)
+for (i in 1:5){
+  for (j in 1:5){
+      if (i != j){
+        x[i]=x[i]+c3$table[j,i]
+      }
+  }
+}
+barplot(x, col = c("red", "green", "purple", "navy", "orange")) 
+  barplot(x, col = c("red", "green", "purple", "navy", "orange"),
+  main = "Incorrect Predictions", ylab = "Count", xlab = "Classe") 
+      barplot(x, col = c("red", "green", "purple", "navy", "orange"),
+      main = "Incorrect Predictions", ylab = "Count", xlab = "Classe",
+      legend("topleft", pch = 15, col= c("red", "green", "purple", "navy", "orange"), 
+      legend = c("A", "B", "C", "D", "E")))
+```
