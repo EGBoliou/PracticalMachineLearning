@@ -128,8 +128,7 @@ for (i in 1:5){
         x[i]=x[i]+c3$table[j,i]
       }
   }
-}
-barplot(x, col = c("red", "green", "purple", "navy", "orange")) 
+} 
   barplot(x, col = c("red", "green", "purple", "navy", "orange"),
   main = "Incorrect Predictions", ylab = "Count", xlab = "Classe")
       legend("topleft", pch = 15, col= c("red", "green", "purple", "navy", "orange"), 
