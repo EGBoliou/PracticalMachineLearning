@@ -76,7 +76,7 @@ test2 = master_data[-inTrain, ]
 
 #Build two different models
 mod1 <- train(classe ~.,method="rf",data=train2)
-mod2 <- train(classe ~.,method="gbm",data=train2)
+mod2 <- train(classe ~.,method="gbm",verbose = FALSE, data=train2)
 ```
 
 #Calculating Predictions
